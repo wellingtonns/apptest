@@ -47,10 +47,12 @@ jobs:
           sed -i "s|image: $IMAGE_NAME.*|image: $IMAGE_NAME:${TAG}|g" manifestos/deployment.yaml
 
       - name: Push commit
+        env:
+          TAG: ${{ github.sha }}  # ou a variável que você quiser
         run: |
           git config user.name "github-actions"
           git config user.email "actions@github.com"
-          git remote set-url origin https://wellingtonns:${{ secrets.GH_TOKEN }}@github.com/wellingtonns/apptest.git
+          git remote set-url origin https://x-access-token:${{ secrets.GH_TOKEN }}@github.com/wellingtonns/apptest.git
           git add manifestos/deployment.yaml
           git commit -m "Atualiza imagem para ${TAG}" || echo "Nenhuma alteração para commit"
-          git push
+          git push origin HEAD
