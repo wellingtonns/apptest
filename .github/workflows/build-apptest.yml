@@ -1,3 +1,59 @@
+# name: Build and Deploy App
+
+# on:
+#   push:
+#     branches:
+#       - main
+
+# jobs:
+#   build-and-deploy:
+#     runs-on: ubuntu-latest
+
+#     env:
+#       IMAGE_NAME: welignton/apptest
+
+#     steps:
+#       # 🔹 Clona o repositório
+#       - name: Checkout
+#         uses: actions/checkout@v3
+
+#       # 🔹 Login no Docker Hub
+#       - name: Login no Docker Hub
+#         uses: docker/login-action@v3
+#         with:
+#           username: ${{ secrets.DOCKERHUB_USERNAME }}
+#           password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+#       # 🔹 Define a TAG curta do commit
+#       - name: Definir TAG
+#         run: echo "TAG=${GITHUB_SHA::7}" >> $GITHUB_ENV
+
+#       # 🔹 Build da imagem
+#       - name: Build da imagem Docker
+#         run: |
+#           docker build -t $IMAGE_NAME:${TAG} .
+#           docker tag $IMAGE_NAME:${TAG} $IMAGE_NAME:latest
+
+#       # 🔹 Push da imagem
+#       - name: Push da imagem Docker
+#         run: |
+#           docker push $IMAGE_NAME:${TAG}
+#           docker push $IMAGE_NAME:latest
+
+#       # 🔹 Atualiza o YAML com nova tag
+#       - name: Atualizar deployment.yaml
+#         run: |
+#           sed -i "s|image: $IMAGE_NAME.*|image: $IMAGE_NAME:${TAG}|g" manifestos/deployment.yaml
+
+#       # 🔹 Faz commit e push da atualização
+#       - name: Commit e Push
+#         run: |
+#           git config user.name "github-actions"
+#           git config user.email "actions@github.com"
+#           git remote set-url origin https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/wellingtonns/apptest.git
+#           git add manifestos/deployment.yaml
+#           git commit -m "Atualiza imagem para ${TAG}" || echo "Nenhuma alteração para commit"
+#           git push origin HEAD
 name: Build and Deploy App
 
 on:
@@ -11,6 +67,10 @@ jobs:
 
     env:
       IMAGE_NAME: welignton/apptest
+      ARGOCD_URL: argocd.seudominio.com
+      ARGOCD_USER: ${{ secrets.ARGOCD_USER }}
+      ARGOCD_PASS: ${{ secrets.ARGOCD_PASS }}
+      APP_NAME: apptest # 🔸 nome exato do app cadastrado no ArgoCD
 
     steps:
       # 🔹 Clona o repositório
@@ -55,15 +115,49 @@ jobs:
           git commit -m "Atualiza imagem para ${TAG}" || echo "Nenhuma alteração para commit"
           git push origin HEAD
 
-      - name: Instala Argo CD CLI
+      # 🔹 Instala jq para parsear JSON
+      - name: Instalar jq
+        run: sudo apt-get install -y jq
+
+      # 🔹 Faz login no ArgoCD
+      - name: Login no ArgoCD
+        id: login
         run: |
-          curl -sSL -o argocd https://github.com/argoproj/argo-cd/releases/latest/download/argocd-linux-amd64
-          chmod +x argocd
-          sudo mv argocd /usr/local/bin/argocd
-        
-      - name: ArgoCD Sync
+          echo "🔐 Fazendo login no ArgoCD"
+          TOKEN=$(curl -sk -X POST -H "Content-Type: application/json" \
+            -d '{"username":"'"$ARGOCD_USER"'","password":"'"$ARGOCD_PASS"'"}' \
+            https://$ARGOCD_URL/api/v1/session | jq -r .token)
+
+          if [[ -z "$TOKEN" || "$TOKEN" == "null" ]]; then
+            echo "❌ Erro no login no ArgoCD"
+            exit 1
+          fi
+
+          echo "ARGOCD_TOKEN=$TOKEN" >> $GITHUB_ENV
+
+      # 🔹 Verifica se o App está Synced e Healthy
+      - name: Verificar Status no ArgoCD
         run: |
-          argocd app sync apptest --auth-token ${{ secrets.ARGOCD_AUTH_TOKEN }} --server ${{ secrets.ARGOCD_SERVER }}
-        env:
-          ARGOCD_AUTH_TOKEN: ${{ secrets.ARGOCD_AUTH_TOKEN }}
-          ARGOCD_SERVER: ${{ secrets.ARGOCD_SERVER }}
+          echo "🔍 Verificando status do app $APP_NAME"
+
+          for i in {1..10}
+          do
+            RESPONSE=$(curl -sk -H "Authorization: Bearer $ARGOCD_TOKEN" \
+              https://$ARGOCD_URL/api/v1/applications/$APP_NAME)
+
+            STATUS=$(echo "$RESPONSE" | jq -r '.status.sync.status')
+            HEALTH=$(echo "$RESPONSE" | jq -r '.status.health.status')
+
+            echo "⏳ Sync: $STATUS | Health: $HEALTH"
+
+            if [[ "$STATUS" == "Synced" && "$HEALTH" == "Healthy" ]]; then
+              echo "✅ Aplicação sincronizada e saudável!"
+              exit 0
+            fi
+
+            echo "⏳ Aguardando sincronização... Tentativa $i de 10"
+            sleep 10
+          done
+
+          echo "❌ Aplicação NÃO sincronizada ou NÃO saudável após 10 tentativas"
+          exit 1
