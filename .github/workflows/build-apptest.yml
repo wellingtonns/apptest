@@ -73,41 +73,40 @@ jobs:
 
           echo "ARGOCD_TOKEN=$TOKEN" >> $GITHUB_ENV
 
-      # 🔹 Verificar status do app no ArgoCD sem falhar pipeline
       - name: Verificar Status no ArgoCD
         run: |
           echo "🔍 Verificando status do app $APP_NAME"
 
-          DEGRADED=false
-
           for i in {1..10}
           do
-            RESPONSE=$(curl -sk -H "Authorization: Bearer $ARGOCD_TOKEN" \
-              https://$ARGOCD_URL/api/v1/applications/$APP_NAME)
-
+            RESPONSE=$(curl -sk -H "Authorization: Bearer $ARGOCD_TOKEN" https://$ARGOCD_URL/api/v1/applications/$APP_NAME)
             STATUS=$(echo "$RESPONSE" | jq -r '.status.sync.status')
             HEALTH=$(echo "$RESPONSE" | jq -r '.status.health.status')
 
+            echo "Tentativa $i: sync=$STATUS, health=$HEALTH"
+
             if [[ "$STATUS" == "Synced" && "$HEALTH" == "Healthy" ]]; then
-              echo "Aplicação sincronizada ---- Status ---= Healthy✅  !"
+              echo "Aplicação sincronizada e saudável ✅"
               exit 0
             fi
 
             if [[ "$HEALTH" == "Degraded" ]]; then
-              DEGRADED=true
+              echo "❌ Aplicação com status Degraded. Parando pipeline."
+              exit 1
             fi
 
-            echo "⏳ Aplicação Checkins --- Status ---= Processing"
+            echo "⏳ Aplicação em processamento, aguardando..."
             sleep 10
           done
 
-          if [[ "$DEGRADED" == "true" ]]; then
-            echo "❌ Aplicação com Falha ---- Status ---= Degraded"
-          else
-            echo "⚠️ Aplicação não sincronizada e não saudável após as tentativas"
-          fi
+          echo "⚠️ Aplicação não sincronizada e não saudável após 10 tentativas"
+          exit 1
 
-          exit 1 # 
+
+
+
+
+
 # name: Build and Deploy App
 
 # on:
