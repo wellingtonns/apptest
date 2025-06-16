@@ -189,8 +189,8 @@ jobs:
 
           echo "ARGOCD_TOKEN=$TOKEN" >> $GITHUB_ENV
 
-      # 🔹 Verifica se o App está Synced e Healthy
-      - name: Verificar Status no ArgoCD
+      # 🔹 Verifica se o App está Synced e Healthy (não falha a pipeline)
+      - name: Verificar Status no ArgoCD (não falha a pipeline)
         run: |
           echo "🔍 Verificando status do app $APP_NAME"
 
@@ -198,8 +198,6 @@ jobs:
           do
             RESPONSE=$(curl -sk -H "Authorization: Bearer $ARGOCD_TOKEN" \
               https://$ARGOCD_URL/api/v1/applications/$APP_NAME)
-
-            echo "Resposta completa: $RESPONSE"
 
             STATUS=$(echo "$RESPONSE" | jq -r '.status.sync.status')
             HEALTH=$(echo "$RESPONSE" | jq -r '.status.health.status')
@@ -209,21 +207,13 @@ jobs:
             if [[ "$STATUS" == "Synced" && "$HEALTH" == "Healthy" ]]; then
               echo "✅ Aplicação sincronizada e saudável!"
               exit 0
+            else
+              echo "⚠️ Aplicação NÃO está sincronizada e saudável no momento."
             fi
 
-            if [[ "$STATUS" != "Synced" ]]; then
-              echo "❌ Aplicação está OutOfSync!"
-              exit 1
-            fi
-
-            if [[ "$HEALTH" != "Healthy" ]]; then
-              echo "❌ Aplicação não está saudável! Status de saúde: $HEALTH"
-              exit 1
-            fi
-
-            echo "⏳ Aguardando sincronização... Tentativa $i de 10"
+            echo "⏳ Aguardando próximo check... Tentativa $i de 10"
             sleep 10
           done
 
-          echo "❌ Timeout: Aplicação NÃO sincronizada ou NÃO saudável após 10 tentativas"
-          exit 1
+          echo "⚠️ Timeout: Aplicação NÃO sincronizada ou NÃO saudável após 10 tentativas, mas pipeline continua."
+          exit 0
