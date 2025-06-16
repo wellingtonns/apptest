@@ -191,7 +191,7 @@ jobs:
 
   argo-sync:
     needs: build-and-deploy
-    uses: ./.github/workflows/argo-sync.yml
+    uses: wellingtonns/pipeline-template/.github/workflows/argocd-sync.yaml@main
     with:
       ARGOCD_URL: ${{ secrets.ARGOCD_URL }}
       ARGOCD_USER: ${{ secrets.ARGOCD_USER }}
