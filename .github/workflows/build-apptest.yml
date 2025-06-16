@@ -81,23 +81,23 @@ jobs:
 
           echo "token=$TOKEN" >> $GITHUB_OUTPUT
 
-- name: Sync ArgoCD
-  run: |
-    echo "🔐 Fazendo login no ArgoCD"
-    TOKEN=$(curl -sk -X POST -H "Content-Type: application/json" \
-      -d '{"username":"'"$ARGOCD_USER"'","password":"'"$ARGOCD_PASS"'"}' \
-      https://$ARGOCD_URL/api/v1/session | jq -r .token)
-
-    if [[ -z "$TOKEN" || "$TOKEN" == "null" ]]; then
-      echo "❌ Erro ao autenticar no ArgoCD"
-      exit 1
-    fi
-
-    echo "✅ Login efetuado com sucesso!"
-
-    echo "🚀 Disparando sync da aplicação $ARGOCD_APP"
-    curl -sk -X POST \
-      -H "Authorization: Bearer $TOKEN" \
-      -H "Content-Type: application/json" \
-      https://$ARGOCD_URL/api/v1/applications/$ARGOCD_APP/sync
+      - name: Sync ArgoCD
+        run: |
+          echo "🔐 Fazendo login no ArgoCD"
+          TOKEN=$(curl -sk -X POST -H "Content-Type: application/json" \
+            -d '{"username":"'"$ARGOCD_USER"'","password":"'"$ARGOCD_PASS"'"}' \
+            https://$ARGOCD_URL/api/v1/session | jq -r .token)
+              
+          if [[ -z "$TOKEN" || "$TOKEN" == "null" ]]; then
+            echo "❌ Erro ao autenticar no ArgoCD"
+            exit 1
+          fi
+              
+          echo "✅ Login efetuado com sucesso!"
+              
+          echo "🚀 Disparando sync da aplicação $ARGOCD_APP"
+          curl -sk -X POST \
+            -H "Authorization: Bearer $TOKEN" \
+            -H "Content-Type: application/json" \
+            https://$ARGOCD_URL/api/v1/applications/$ARGOCD_APP/sync
 
