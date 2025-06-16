@@ -77,7 +77,9 @@ jobs:
         run: |
           echo "🔍 Verificando status do app $APP_NAME"
 
-          for i in {1..10}
+          degraded_found=false
+
+          for i in {1..8}
           do
             RESPONSE=$(curl -sk -H "Authorization: Bearer $ARGOCD_TOKEN" https://$ARGOCD_URL/api/v1/applications/$APP_NAME)
             STATUS=$(echo "$RESPONSE" | jq -r '.status.sync.status')
@@ -89,19 +91,21 @@ jobs:
             fi
 
             if [[ "$HEALTH" == "Degraded" ]]; then
-              echo "Aplicação com Falha ---- Status ---= Degraded ❌"
-              exit 1
+              degraded_found=true
             fi
 
             echo "Aplicação Checkins --- Status ---= Processing...⏳"
             sleep 10
           done
 
-          echo "Aplicação com Falha ---- Status ---= Degraded ❌"
-          exit 1
-
-
-
+          if [[ "$degraded_found" == "true" ]]; then
+            echo "Aplicação com Falha ---- Status ---= Degraded ❌"
+            exit 1
+          else
+            echo "Aplicação não sincronizada e não degradada após 8 tentativas"
+            exit 1
+          fi
+ 
 
 
 # name: Build and Deploy App
