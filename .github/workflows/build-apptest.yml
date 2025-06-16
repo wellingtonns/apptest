@@ -54,3 +54,10 @@ jobs:
           git add manifestos/deployment.yaml
           git commit -m "Atualiza imagem para ${TAG}" || echo "Nenhuma alteração para commit"
           git push origin HEAD
+        
+      - name: ArgoCD Sync
+        run: |
+          argocd app sync apptest --auth-token ${{ secrets.ARGOCD_AUTH_TOKEN }} --server ${{ secrets.ARGOCD_SERVER }}
+        env:
+          ARGOCD_AUTH_TOKEN: ${{ secrets.ARGOCD_AUTH_TOKEN }}
+          ARGOCD_SERVER: ${{ secrets.ARGOCD_SERVER }}
