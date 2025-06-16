@@ -1,229 +1,3 @@
-# # name: Build and Deploy App
-
-# # on:
-# #   push:
-# #     branches:
-# #       - main
-
-# # jobs:
-# #   build-and-deploy:
-# #     runs-on: ubuntu-latest
-
-# #     env:
-# #       IMAGE_NAME: welignton/apptest
-# #       ARGOCD_URL: ${{ secrets.ARGOCD_URL }}
-# #       ARGOCD_USER: ${{ secrets.ARGOCD_USER }}
-# #       ARGOCD_PASS: ${{ secrets.ARGOCD_PASS }}
-# #       APP_NAME: apptest # 🔸 nome exato do app cadastrado no ArgoCD
-
-# #     steps:
-# #       # 🔹 Clona o repositório
-# #       - name: Checkout
-# #         uses: actions/checkout@v3
-
-# #       # 🔹 Login no Docker Hub
-# #       - name: Login no Docker Hub
-# #         uses: docker/login-action@v3
-# #         with:
-# #           username: ${{ secrets.DOCKERHUB_USERNAME }}
-# #           password: ${{ secrets.DOCKERHUB_TOKEN }}
-
-# #       # 🔹 Define a TAG curta do commit
-# #       - name: Definir TAG
-# #         run: echo "TAG=${GITHUB_SHA::7}" >> $GITHUB_ENV
-
-# #       # 🔹 Build da imagem
-# #       - name: Build da imagem Docker
-# #         run: |
-# #           docker build -t $IMAGE_NAME:${TAG} .
-# #           docker tag $IMAGE_NAME:${TAG} $IMAGE_NAME:latest
-
-# #       # 🔹 Push da imagem
-# #       - name: Push da imagem Docker
-# #         run: |
-# #           docker push $IMAGE_NAME:${TAG}
-# #           docker push $IMAGE_NAME:latest
-
-# #       # 🔹 Atualiza o YAML com nova tag
-# #       - name: Atualizar deployment.yaml
-# #         run: |
-# #           sed -i "s|image: $IMAGE_NAME.*|image: $IMAGE_NAME:inex|g" manifestos/deployment.yaml
-
-# #       # 🔹 Faz commit e push da atualização
-# #       - name: Commit e Push
-# #         run: |
-# #           git config user.name "github-actions"
-# #           git config user.email "actions@github.com"
-# #           git remote set-url origin https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/wellingtonns/apptest.git
-# #           git add manifestos/deployment.yaml
-# #           git commit -m "Atualiza imagem para ${TAG}" || echo "Nenhuma alteração para commit"
-# #           git push origin HEAD
-
-# #       # 🔹 Instala jq para parsear JSON
-# #       - name: Instalar jq
-# #         run: sudo apt-get install -y jq
-
-# #       # 🔹 Faz login no ArgoCD
-# #       - name: Login no ArgoCD
-# #         id: login
-# #         run: |
-# #           echo "🔐 Fazendo login no ArgoCD"
-# #           TOKEN=$(curl -sk -X POST -H "Content-Type: application/json" \
-# #             -d '{"username":"'"$ARGOCD_USER"'","password":"'"$ARGOCD_PASS"'"}' \
-# #             https://$ARGOCD_URL/api/v1/session | jq -r .token)
-
-# #           if [[ -z "$TOKEN" || "$TOKEN" == "null" ]]; then
-# #             echo "❌ Erro no login no ArgoCD"
-# #             exit 1
-# #           fi
-
-# #           echo "ARGOCD_TOKEN=$TOKEN" >> $GITHUB_ENV
-
-# #       # 🔹 Verifica se o App está Synced e Healthy
-# #       - name: Verificar Status no ArgoCD
-# #         run: |
-# #           echo "🔍 Verificando status do app $APP_NAME"
-
-# #           for i in {1..10}
-# #           do
-# #             RESPONSE=$(curl -sk -H "Authorization: Bearer $ARGOCD_TOKEN" \
-# #               https://$ARGOCD_URL/api/v1/applications/$APP_NAME)
-
-# #             STATUS=$(echo "$RESPONSE" | jq -r '.status.sync.status')
-# #             HEALTH=$(echo "$RESPONSE" | jq -r '.status.health.status')
-
-# #             echo "⏳ Sync: $STATUS | Health: $HEALTH"
-
-# #             if [[ "$STATUS" == "Synced" && "$HEALTH" == "Healthy" ]]; then
-# #               echo "✅ Aplicação sincronizada e saudável!"
-# #               exit 0
-# #             fi
-
-# #             echo "⏳ Aguardando sincronização... Tentativa $i de 10"
-# #             sleep 10
-# #           done
-
-# #           echo "❌ Aplicação NÃO sincronizada ou NÃO saudável após 10 tentativas"
-# #           exit 1
-
-
-
-# name: Build and Deploy App
-
-# on:
-#   push:
-#     branches:
-#       - main
-
-# jobs:
-#   build-and-deploy:
-#     runs-on: ubuntu-latest
-
-#     env:
-#       IMAGE_NAME: welignton/apptest
-#       ARGOCD_URL: ${{ secrets.ARGOCD_URL }}
-#       ARGOCD_USER: ${{ secrets.ARGOCD_USER }}
-#       ARGOCD_PASS: ${{ secrets.ARGOCD_PASS }}
-#       APP_NAME: apptest # nome exato do app cadastrado no ArgoCD
-
-#     steps:
-#       # 🔹 Clona o repositório
-#       - name: Checkout
-#         uses: actions/checkout@v3
-
-#       # 🔹 Login no Docker Hub
-#       - name: Login no Docker Hub
-#         uses: docker/login-action@v3
-#         with:
-#           username: ${{ secrets.DOCKERHUB_USERNAME }}
-#           password: ${{ secrets.DOCKERHUB_TOKEN }}
-
-#       # 🔹 Define a TAG curta do commit
-#       - name: Definir TAG
-#         run: echo "TAG=${GITHUB_SHA::7}" >> $GITHUB_ENV
-
-#       # 🔹 Build da imagem Docker
-#       - name: Build da imagem Docker
-#         run: |
-#           docker build -t $IMAGE_NAME:${TAG} .
-#           docker tag $IMAGE_NAME:${TAG} $IMAGE_NAME:latest
-
-#       # 🔹 Push da imagem Docker
-#       - name: Push da imagem Docker
-#         run: |
-#           docker push $IMAGE_NAME:${TAG}
-#           docker push $IMAGE_NAME:latest
-
-#       # 🔹 Atualiza o YAML com tag inválida para teste de erro
-#       - name: Atualizar deployment.yaml com tag inválida (teste)
-#         run: |
-#           sed -i "s|image: $IMAGE_NAME.*|image: $IMAGE_NAME:${TAG}|g" manifestos/deployment.yaml
-
-#       # 🔹 Faz commit e push da atualização
-#       - name: Commit e Push
-#         run: |
-#           git config user.name "github-actions"
-#           git config user.email "actions@github.com"
-#           git remote set-url origin https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/wellingtonns/apptest.git
-#           git add manifestos/deployment.yaml
-#           git commit -m "Atualiza imagem para tag ${TAG} " || echo "Nenhuma alteração para commit"
-#           git push origin HEAD
-
-#       # 🔹 Instala jq para parsear JSON
-#       - name: Instalar jq
-#         run: sudo apt-get update && sudo apt-get install -y jq
-
-#       # 🔹 Faz login no ArgoCD
-#       - name: Login no ArgoCD
-#         id: login
-#         run: |
-#           echo "🔐 Fazendo login no ArgoCD"
-#           TOKEN=$(curl -sk -X POST -H "Content-Type: application/json" \
-#             -d '{"username":"'"$ARGOCD_USER"'","password":"'"$ARGOCD_PASS"'"}' \
-#             https://$ARGOCD_URL/api/v1/session | jq -r .token)
-
-#           if [[ -z "$TOKEN" || "$TOKEN" == "null" ]]; then
-#             echo "❌ Erro no login no ArgoCD"
-#             exit 1
-#           fi
-
-#           echo "ARGOCD_TOKEN=$TOKEN" >> $GITHUB_ENV
-
-#       # 🔹 Verifica se o App está Synced e Healthy (não falha a pipeline)
-#       - name: Verificar Status no ArgoCD (não falha a pipeline)
-#         run: |
-#           echo "🔍 Verificando status do app $APP_NAME"
-
-#           DEGRADED=false
-
-#           for i in {1..10}
-#           do
-#             RESPONSE=$(curl -sk -H "Authorization: Bearer $ARGOCD_TOKEN" \
-#               https://$ARGOCD_URL/api/v1/applications/$APP_NAME)
-
-#             STATUS=$(echo "$RESPONSE" | jq -r '.status.sync.status')
-#             HEALTH=$(echo "$RESPONSE" | jq -r '.status.health.status')
-
-#             if [[ "$STATUS" == "Synced" && "$HEALTH" == "Healthy" ]]; then
-#               echo "✅ Aplicação sincronizada e saudável!"
-#               exit 0
-#             fi
-
-#             if [[ "$HEALTH" == "Degraded" ]]; then
-#               DEGRADED=true
-#             fi
-
-#             echo "⏳ Aplicação Checkins Status Processing"
-#             sleep 10
-#           done
-
-#           if [[ "$DEGRADED" == "true" ]]; then
-#             echo "❌ Aplicação Checkins Status Degraded"
-#           else
-#             echo "⚠️ Aplicação não sincronizada e não saudável após as tentativas"
-#           fi
-
-
 name: Build and Deploy App
 
 on:
@@ -243,39 +17,32 @@ jobs:
       APP_NAME: apptest
 
     steps:
-      # 🔹 Checkout no repositório
       - name: Checkout
         uses: actions/checkout@v3
 
-      # 🔹 Login no Docker Hub
       - name: Login no Docker Hub
         uses: docker/login-action@v3
         with:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
 
-      # 🔹 Definir a TAG do commit
       - name: Definir TAG
         run: echo "TAG=${GITHUB_SHA::7}" >> $GITHUB_ENV
 
-      # 🔹 Build da imagem Docker
       - name: Build da imagem Docker
         run: |
           docker build -t $IMAGE_NAME:${TAG} .
           docker tag $IMAGE_NAME:${TAG} $IMAGE_NAME:latest
 
-      # 🔹 Push da imagem Docker
       - name: Push da imagem Docker
         run: |
           docker push $IMAGE_NAME:${TAG}
           docker push $IMAGE_NAME:latest
 
-      # 🔹 Atualiza o deployment.yaml com nova TAG
       - name: Atualizar deployment.yaml
         run: |
           sed -i "s|image: $IMAGE_NAME.*|image: $IMAGE_NAME:${TAG}|g" manifestos/deployment.yaml
 
-      # 🔹 Commit e Push das mudanças no manifesto
       - name: Commit e Push
         run: |
           git config user.name "github-actions"
@@ -285,7 +52,6 @@ jobs:
           git commit -m "Atualiza imagem para tag ${TAG}" || echo "Nenhuma alteração para commit"
           git push origin HEAD
 
-      # 🔹 Instala jq (JSON parser)
       - name: Instalar jq
         run: |
           sudo apt-get update
@@ -323,7 +89,7 @@ jobs:
             HEALTH=$(echo "$RESPONSE" | jq -r '.status.health.status')
 
             if [[ "$STATUS" == "Synced" && "$HEALTH" == "Healthy" ]]; then
-              echo "✅ Aplicação sincronizada e saudável!"
+              echo "Aplicação sincronizada ---- Status ---= Healthy✅  !"
               exit 0
             fi
 
@@ -331,12 +97,12 @@ jobs:
               DEGRADED=true
             fi
 
-            echo "⏳ Aplicação Checkins Status Processing"
+            echo "⏳ Aplicação Checkins --- Status ---= Processing"
             sleep 10
           done
 
           if [[ "$DEGRADED" == "true" ]]; then
-            echo "❌ Aplicação Checkins Status Degraded"
+            echo "❌ Aplicação com Falha ---- Status ---= Degraded"
           else
             echo "⚠️ Aplicação não sincronizada e não saudável após as tentativas"
           fi
