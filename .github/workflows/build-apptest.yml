@@ -107,6 +107,34 @@
 #           fi
  
 
+# name: Build and Deploy App
+
+# on:
+#   push:
+#     branches:
+#       - main
+
+# jobs:
+#   build-image:
+#     uses: wellingtonns/pipeline-template/.github/workflows/build-image.yaml@main
+#     with:
+#       IMAGE_NAME: welignton/apptest
+
+#   update-manifest:
+#     needs: build-image
+#     uses: wellingtonns/pipeline-template/.github/workflows/update-manifest.yaml@main
+#     with:
+#       IMAGE_NAME: welignton/apptest
+#       TAG: ${{ needs.build-image.outputs.tag }}
+#       FILE_PATH: manifestos/deployment.yaml
+
+#   deploy:
+#     needs: update-manifest
+#     uses: wellingtonns/pipeline-template/.github/workflows/argocd-sync.yaml@main
+#     with:
+#       APP_NAME: apptest
+
+
 name: Build and Deploy App
 
 on:
@@ -115,21 +143,56 @@ on:
       - main
 
 jobs:
-  build-image:
-    uses: wellingtonns/pipeline-template/.github/workflows/build-image.yaml@main
-    with:
-      IMAGE_NAME: welignton/apptest
+  build-and-deploy:
+    runs-on: ubuntu-latest
 
-  update-manifest:
-    needs: build-image
-    uses: wellingtonns/pipeline-template/.github/workflows/update-manifest.yaml@main
-    with:
+    env:
       IMAGE_NAME: welignton/apptest
-      TAG: ${{ needs.build-image.outputs.tag }}
-      FILE_PATH: manifestos/deployment.yaml
-
-  deploy:
-    needs: update-manifest
-    uses: wellingtonns/pipeline-template/.github/workflows/argocd-sync.yaml@main
-    with:
+      ARGOCD_URL: ${{ secrets.ARGOCD_URL }}
+      ARGOCD_USER: ${{ secrets.ARGOCD_USER }}
+      ARGOCD_PASS: ${{ secrets.ARGOCD_PASS }}
       APP_NAME: apptest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+
+      - name: Login no Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: Definir TAG
+        run: echo "TAG=${GITHUB_SHA::7}" >> $GITHUB_ENV
+
+      - name: Build da imagem Docker
+        run: |
+          docker build -t $IMAGE_NAME:${TAG} .
+          docker tag $IMAGE_NAME:${TAG} $IMAGE_NAME:latest
+
+      - name: Push da imagem Docker
+        run: |
+          docker push $IMAGE_NAME:${TAG}
+          docker push $IMAGE_NAME:latest
+
+      - name: Atualizar deployment.yaml
+        run: |
+          sed -i "s|image: $IMAGE_NAME.*|image: $IMAGE_NAME:${TAG}|g" manifestos/deployment.yaml
+
+      - name: Commit e Push
+        run: |
+          git config user.name "github-actions"
+          git config user.email "actions@github.com"
+          git remote set-url origin https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/wellingtonns/apptest.git
+          git add manifestos/deployment.yaml
+          git commit -m "Atualiza imagem para tag ${TAG}" || echo "Nenhuma alteração para commit"
+          git push origin HEAD
+
+      - name: Call ArgoCD Sync Template
+        uses: ./.github/workflows/argo-sync.yml
+        with:
+          ARGOCD_URL: ${{ env.ARGOCD_URL }}
+          ARGOCD_USER: ${{ env.ARGOCD_USER }}
+          ARGOCD_PASS: ${{ env.ARGOCD_PASS }}
+          APP_NAME: ${{ env.APP_NAME }}
