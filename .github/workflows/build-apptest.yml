@@ -1,3 +1,113 @@
+# name: Build and Deploy App
+
+# on:
+#   push:
+#     branches:
+#       - main
+
+# jobs:
+#   build-and-deploy:
+#     runs-on: ubuntu-latest
+
+#     env:
+#       IMAGE_NAME: welignton/apptest
+#       ARGOCD_URL: ${{ secrets.ARGOCD_URL }}
+#       ARGOCD_USER: ${{ secrets.ARGOCD_USER }}
+#       ARGOCD_PASS: ${{ secrets.ARGOCD_PASS }}
+#       APP_NAME: apptest
+
+#     steps:
+#       - name: Checkout
+#         uses: actions/checkout@v3
+
+#       - name: Login no Docker Hub
+#         uses: docker/login-action@v3
+#         with:
+#           username: ${{ secrets.DOCKERHUB_USERNAME }}
+#           password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+#       - name: Definir TAG
+#         run: echo "TAG=${GITHUB_SHA::7}" >> $GITHUB_ENV
+
+#       - name: Build da imagem Docker
+#         run: |
+#           docker build -t $IMAGE_NAME:${TAG} .
+#           docker tag $IMAGE_NAME:${TAG} $IMAGE_NAME:latest
+
+#       - name: Push da imagem Docker
+#         run: |
+#           docker push $IMAGE_NAME:${TAG}
+#           docker push $IMAGE_NAME:latest
+
+#       - name: Atualizar deployment.yaml
+#         run: |
+#           sed -i "s|image: $IMAGE_NAME.*|image: $IMAGE_NAME:${TAG}|g" manifestos/deployment.yaml
+
+#       - name: Commit e Push
+#         run: |
+#           git config user.name "github-actions"
+#           git config user.email "actions@github.com"
+#           git remote set-url origin https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/wellingtonns/apptest.git
+#           git add manifestos/deployment.yaml
+#           git commit -m "Atualiza imagem para tag ${TAG}" || echo "Nenhuma alteração para commit"
+#           git push origin HEAD
+
+#       - name: Instalar jq
+#         run: |
+#           sudo apt-get update
+#           sudo apt-get install -y jq
+
+#       # 🔹 Login no ArgoCD
+#       - name: Login no ArgoCD
+#         id: login
+#         run: |
+#           echo "🔐 Fazendo login no ArgoCD"
+#           TOKEN=$(curl -sk -X POST -H "Content-Type: application/json" \
+#             -d '{"username":"'"$ARGOCD_USER"'","password":"'"$ARGOCD_PASS"'"}' \
+#             https://$ARGOCD_URL/api/v1/session | jq -r .token)
+
+#           if [[ -z "$TOKEN" || "$TOKEN" == "null" ]]; then
+#             echo "❌ Erro no login no ArgoCD"
+#             exit 1
+#           fi
+
+#           echo "ARGOCD_TOKEN=$TOKEN" >> $GITHUB_ENV
+
+#       # 🔹 Verificar status do app no ArgoCD sem falhar pipeline
+#       - name: Verificar Status no ArgoCD
+#         run: |
+#           echo "🔍 Verificando status do app $APP_NAME"
+
+#           DEGRADED=false
+
+#           for i in {1..10}
+#           do
+#             RESPONSE=$(curl -sk -H "Authorization: Bearer $ARGOCD_TOKEN" \
+#               https://$ARGOCD_URL/api/v1/applications/$APP_NAME)
+
+#             STATUS=$(echo "$RESPONSE" | jq -r '.status.sync.status')
+#             HEALTH=$(echo "$RESPONSE" | jq -r '.status.health.status')
+
+#             if [[ "$STATUS" == "Synced" && "$HEALTH" == "Healthy" ]]; then
+#               echo "Aplicação sincronizada ---- Status ---= Healthy✅  !"
+#               exit 0
+#             fi
+
+#             if [[ "$HEALTH" == "Degraded" ]]; then
+#               DEGRADED=true
+#             fi
+
+#             echo "⏳ Aplicação Checkins --- Status ---= Processing"
+#             sleep 10
+#           done
+
+#           if [[ "$DEGRADED" == "true" ]]; then
+#             echo "❌ Aplicação com Falha ---- Status ---= Degraded"
+#           else
+#             echo "⚠️ Aplicação não sincronizada e não saudável após as tentativas"
+#           fi
+
+#           exit 0 # 🔥 Não quebra a pipeline mesmo com problema no status
 name: Build and Deploy App
 
 on:
@@ -11,10 +121,6 @@ jobs:
 
     env:
       IMAGE_NAME: welignton/apptest
-      ARGOCD_URL: ${{ secrets.ARGOCD_URL }}
-      ARGOCD_USER: ${{ secrets.ARGOCD_USER }}
-      ARGOCD_PASS: ${{ secrets.ARGOCD_PASS }}
-      APP_NAME: apptest
 
     steps:
       - name: Checkout
@@ -52,59 +158,12 @@ jobs:
           git commit -m "Atualiza imagem para tag ${TAG}" || echo "Nenhuma alteração para commit"
           git push origin HEAD
 
-      - name: Instalar jq
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y jq
-
-      # 🔹 Login no ArgoCD
-      - name: Login no ArgoCD
-        id: login
-        run: |
-          echo "🔐 Fazendo login no ArgoCD"
-          TOKEN=$(curl -sk -X POST -H "Content-Type: application/json" \
-            -d '{"username":"'"$ARGOCD_USER"'","password":"'"$ARGOCD_PASS"'"}' \
-            https://$ARGOCD_URL/api/v1/session | jq -r .token)
-
-          if [[ -z "$TOKEN" || "$TOKEN" == "null" ]]; then
-            echo "❌ Erro no login no ArgoCD"
-            exit 1
-          fi
-
-          echo "ARGOCD_TOKEN=$TOKEN" >> $GITHUB_ENV
-
-      # 🔹 Verificar status do app no ArgoCD sem falhar pipeline
-      - name: Verificar Status no ArgoCD
-        run: |
-          echo "🔍 Verificando status do app $APP_NAME"
-
-          DEGRADED=false
-
-          for i in {1..10}
-          do
-            RESPONSE=$(curl -sk -H "Authorization: Bearer $ARGOCD_TOKEN" \
-              https://$ARGOCD_URL/api/v1/applications/$APP_NAME)
-
-            STATUS=$(echo "$RESPONSE" | jq -r '.status.sync.status')
-            HEALTH=$(echo "$RESPONSE" | jq -r '.status.health.status')
-
-            if [[ "$STATUS" == "Synced" && "$HEALTH" == "Healthy" ]]; then
-              echo "Aplicação sincronizada ---- Status ---= Healthy✅  !"
-              exit 0
-            fi
-
-            if [[ "$HEALTH" == "Degraded" ]]; then
-              DEGRADED=true
-            fi
-
-            echo "⏳ Aplicação Checkins --- Status ---= Processing"
-            sleep 10
-          done
-
-          if [[ "$DEGRADED" == "true" ]]; then
-            echo "❌ Aplicação com Falha ---- Status ---= Degraded"
-          else
-            echo "⚠️ Aplicação não sincronizada e não saudável após as tentativas"
-          fi
-
-          exit 0 # 🔥 Não quebra a pipeline mesmo com problema no status
+  monitor-argocd:
+    uses: ./.github/workflows/argocd-monitor.yaml
+    needs: build-and-deploy
+    with:
+      APP_NAME: apptest
+    secrets:
+      ARGOCD_URL: ${{ secrets.ARGOCD_URL }}
+      ARGOCD_USER: ${{ secrets.ARGOCD_USER }}
+      ARGOCD_PASS: ${{ secrets.ARGOCD_PASS }}
