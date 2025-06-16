@@ -17,4 +17,5 @@ spec:
         - name: app-test
           image: welignton/apptest:v2
           ports:
-            - containerPort: 5000
+            - containerPort: 9000
+
