@@ -11,11 +11,6 @@ jobs:
 
     env:
       IMAGE_NAME: welignton/apptest
-      ARGOCD_URL: ${{ secrets.ARGOCD_URL }}
-      ARGOCD_USER: ${{ secrets.ARGOCD_USER }}
-      ARGOCD_PASS: ${{ secrets.ARGOCD_PASS }}
-      ARGOCD_APP: apptest
-
 
     steps:
       # 🔹 Clona o repositório
@@ -59,45 +54,3 @@ jobs:
           git add manifestos/deployment.yaml
           git commit -m "Atualiza imagem para ${TAG}" || echo "Nenhuma alteração para commit"
           git push origin HEAD
-
-      - name: ArgoCD - Login e Sync
-        id: argocd
-        run: |
-          echo "🔐 Fazendo login no ArgoCD"
-          TOKEN=$(curl -sk -X POST -H "Content-Type: application/json" \
-            -d '{"username":"'"$ARGOCD_USER"'","password":"'"$ARGOCD_PASS"'"}' \
-            https://$ARGOCD_URL/api/v1/session | jq -r .token)
-
-          if [[ -z "$TOKEN" || "$TOKEN" == "null" ]]; then
-            echo "❌ Erro ao autenticar no ArgoCD"
-            exit 1
-          fi
-
-          echo "🚀 Disparando sync da aplicação $ARGOCD_APP"
-          curl -sk -X POST \
-            -H "Authorization: Bearer $TOKEN" \
-            -H "Content-Type: application/json" \
-            https://$ARGOCD_URL/api/v1/applications/$ARGOCD_APP/sync
-
-          echo "token=$TOKEN" >> $GITHUB_OUTPUT
-
-      - name: Sync ArgoCD
-        run: |
-          echo "🔐 Fazendo login no ArgoCD"
-          TOKEN=$(curl -sk -X POST -H "Content-Type: application/json" \
-            -d '{"username":"'"$ARGOCD_USER"'","password":"'"$ARGOCD_PASS"'"}' \
-            https://$ARGOCD_URL/api/v1/session | jq -r .token)
-              
-          if [[ -z "$TOKEN" || "$TOKEN" == "null" ]]; then
-            echo "❌ Erro ao autenticar no ArgoCD"
-            exit 1
-          fi
-              
-          echo "✅ Login efetuado com sucesso!"
-              
-          echo "🚀 Disparando sync da aplicação $ARGOCD_APP"
-          curl -sk -X POST \
-            -H "Authorization: Bearer $TOKEN" \
-            -H "Content-Type: application/json" \
-            https://$ARGOCD_URL/api/v1/applications/$ARGOCD_APP/sync
-
