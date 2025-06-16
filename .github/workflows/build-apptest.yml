@@ -130,6 +130,6 @@ jobs:
 
   deploy:
     needs: update-manifest
-    uses: wellingtonns/pipeline-template/.github/workflows/deploy-argocd.yaml@main
+    uses: wellingtonns/pipeline-template/.github/workflows/argocd-sync.yaml@main
     with:
       APP_NAME: apptest
