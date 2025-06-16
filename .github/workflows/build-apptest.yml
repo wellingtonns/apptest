@@ -11,6 +11,11 @@ jobs:
 
     env:
       IMAGE_NAME: welignton/apptest
+      ARGOCD_URL: ${{ secrets.ARGOCD_URL }}
+      ARGOCD_USER: ${{ secrets.ARGOCD_USER }}
+      ARGOCD_PASS: ${{ secrets.ARGOCD_PASS }}
+      ARGOCD_APP: apptest
+
 
     steps:
       # 🔹 Clona o repositório
@@ -76,28 +81,23 @@ jobs:
 
           echo "token=$TOKEN" >> $GITHUB_OUTPUT
 
-      - name: ArgoCD - Espera ficar Healthy
-        run: |
-          TOKEN="${{ steps.argocd.outputs.token }}"
+- name: Sync ArgoCD
+  run: |
+    echo "🔐 Fazendo login no ArgoCD"
+    TOKEN=$(curl -sk -X POST -H "Content-Type: application/json" \
+      -d '{"username":"'"$ARGOCD_USER"'","password":"'"$ARGOCD_PASS"'"}' \
+      https://$ARGOCD_URL/api/v1/session | jq -r .token)
 
-          echo "⏳ Aguardando aplicação $ARGOCD_APP ficar Healthy..."
+    if [[ -z "$TOKEN" || "$TOKEN" == "null" ]]; then
+      echo "❌ Erro ao autenticar no ArgoCD"
+      exit 1
+    fi
 
-          for i in {1..60}; do
-            STATUS=$(curl -sk -H "Authorization: Bearer $TOKEN" \
-              https://$ARGOCD_URL/api/v1/applications/$ARGOCD_APP | jq -r '.status.health.status')
+    echo "✅ Login efetuado com sucesso!"
 
-            SYNC=$(curl -sk -H "Authorization: Bearer $TOKEN" \
-              https://$ARGOCD_URL/api/v1/applications/$ARGOCD_APP | jq -r '.status.sync.status')
+    echo "🚀 Disparando sync da aplicação $ARGOCD_APP"
+    curl -sk -X POST \
+      -H "Authorization: Bearer $TOKEN" \
+      -H "Content-Type: application/json" \
+      https://$ARGOCD_URL/api/v1/applications/$ARGOCD_APP/sync
 
-            echo "🔎 Health: $STATUS | Sync: $SYNC"
-
-            if [[ "$STATUS" == "Healthy" && "$SYNC" == "Synced" ]]; then
-              echo "✅ Aplicação está Healthy e Synced!"
-              exit 0
-            fi
-
-            sleep 5
-          done
-
-          echo "❌ Timeout: aplicação não ficou Healthy a tempo."
-          exit 1
