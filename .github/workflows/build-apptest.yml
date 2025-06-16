@@ -202,18 +202,15 @@ jobs:
             STATUS=$(echo "$RESPONSE" | jq -r '.status.sync.status')
             HEALTH=$(echo "$RESPONSE" | jq -r '.status.health.status')
 
-            echo "⏳ Sync: $STATUS | Health: $HEALTH"
-
             if [[ "$STATUS" == "Synced" && "$HEALTH" == "Healthy" ]]; then
               echo "✅ Aplicação sincronizada e saudável!"
               exit 0
+            elif [[ "$HEALTH" == "Degraded" ]]; then
+              echo "❌ Aplicação Checkins Status Degraded"
+              exit 0
             else
-              echo "⚠️ Aplicação NÃO está sincronizada e saudável no momento."
+              echo "⏳ Aplicação Checkins Status Processing"
             fi
 
-            echo "⏳ Aguardando próximo check... Tentativa $i de 10"
             sleep 10
-          done
-
-          echo "⚠️ Timeout: Aplicação NÃO sincronizada ou NÃO saudável após 10 tentativas, mas pipeline continua."
-          exit 0
+          done  
