@@ -1,0 +1,27 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: app-test
+  namespace: apptest
+  annotations:
+    nginx.ingress.kubernetes.io/backend-protocol: "HTTPS"
+    nginx.ingress.kubernetes.io/force-ssl-redirect: "true"
+    cert-manager.io/cluster-issuer: "letsencrypt-prd"
+    external-dns.alpha.kubernetes.io/hostname: apptest.wnstech.com.br
+spec:
+  ingressClassName: nginx
+  rules:
+    - host: apptest.wnstech.com.br
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: app-test
+                port:
+                  number: 80
+  tls:
+    - hosts:
+        - apptest.wnstech.com.br
+      secretName: apptest-cert-tls
