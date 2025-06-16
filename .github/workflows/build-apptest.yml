@@ -67,7 +67,7 @@ jobs:
 
     env:
       IMAGE_NAME: welignton/apptest
-      ARGOCD_URL: argocd.seudominio.com
+      ARGOCD_URL: ${{ secrets.ARGOCD_URL }}
       ARGOCD_USER: ${{ secrets.ARGOCD_USER }}
       ARGOCD_PASS: ${{ secrets.ARGOCD_PASS }}
       APP_NAME: apptest # 🔸 nome exato do app cadastrado no ArgoCD
