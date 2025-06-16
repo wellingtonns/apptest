@@ -1,3 +1,61 @@
+# name: Build and Deploy App
+
+# on:
+#   push:
+#     branches:
+#       - main
+
+# jobs:
+#   build-and-deploy:
+#     runs-on: ubuntu-latest
+
+#     env:
+#       IMAGE_NAME: welignton/apptest
+
+#     steps:
+#       # 🔹 Clona o repositório
+#       - name: Checkout
+#         uses: actions/checkout@v3
+
+#       # 🔹 Login no Docker Hub
+#       - name: Login no Docker Hub
+#         uses: docker/login-action@v3
+#         with:
+#           username: ${{ secrets.DOCKERHUB_USERNAME }}
+#           password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+#       # 🔹 Define a TAG curta do commit
+#       - name: Definir TAG
+#         run: echo "TAG=${GITHUB_SHA::7}" >> $GITHUB_ENV
+
+#       # 🔹 Build da imagem
+#       - name: Build da imagem Docker
+#         run: |
+#           docker build -t $IMAGE_NAME:${TAG} .
+#           docker tag $IMAGE_NAME:${TAG} $IMAGE_NAME:latest
+
+#       # 🔹 Push da imagem
+#       - name: Push da imagem Docker
+#         run: |
+#           docker push $IMAGE_NAME:${TAG}
+#           docker push $IMAGE_NAME:latest
+
+#       # 🔹 Atualiza o YAML com nova tag
+#       - name: Atualizar deployment.yaml
+#         run: |
+#           sed -i "s|image: $IMAGE_NAME.*|image: $IMAGE_NAME:${TAG}|g" manifestos/deployment.yaml
+
+#       # 🔹 Faz commit e push da atualização
+#       - name: Commit e Push
+#         run: |
+#           git config user.name "github-actions"
+#           git config user.email "actions@github.com"
+#           git remote set-url origin https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/wellingtonns/apptest.git
+#           git add manifestos/deployment.yaml
+#           git commit -m "Atualiza imagem para ${TAG}" || echo "Nenhuma alteração para commit"
+#           git push origin HEAD
+
+
 name: Build and Deploy App
 
 on:
@@ -11,41 +69,38 @@ jobs:
 
     env:
       IMAGE_NAME: welignton/apptest
+      ARGOCD_APP: apptest
+      ARGOCD_URL: ${{ secrets.ARGOCD_URL }}      # Exemplo: argocd.seudominio.com
+      ARGOCD_USER: ${{ secrets.ARGOCD_USER }}    # Exemplo: admin
+      ARGOCD_PASS: ${{ secrets.ARGOCD_PASS }}
 
     steps:
-      # 🔹 Clona o repositório
       - name: Checkout
         uses: actions/checkout@v3
 
-      # 🔹 Login no Docker Hub
       - name: Login no Docker Hub
         uses: docker/login-action@v3
         with:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
 
-      # 🔹 Define a TAG curta do commit
       - name: Definir TAG
         run: echo "TAG=${GITHUB_SHA::7}" >> $GITHUB_ENV
 
-      # 🔹 Build da imagem
       - name: Build da imagem Docker
         run: |
           docker build -t $IMAGE_NAME:${TAG} .
           docker tag $IMAGE_NAME:${TAG} $IMAGE_NAME:latest
 
-      # 🔹 Push da imagem
       - name: Push da imagem Docker
         run: |
           docker push $IMAGE_NAME:${TAG}
           docker push $IMAGE_NAME:latest
 
-      # 🔹 Atualiza o YAML com nova tag
       - name: Atualizar deployment.yaml
         run: |
           sed -i "s|image: $IMAGE_NAME.*|image: $IMAGE_NAME:${TAG}|g" manifestos/deployment.yaml
 
-      # 🔹 Faz commit e push da atualização
       - name: Commit e Push
         run: |
           git config user.name "github-actions"
@@ -54,3 +109,50 @@ jobs:
           git add manifestos/deployment.yaml
           git commit -m "Atualiza imagem para ${TAG}" || echo "Nenhuma alteração para commit"
           git push origin HEAD
+
+      - name: ArgoCD - Login e Sync
+        id: argocd
+        run: |
+          echo "🔐 Fazendo login no ArgoCD"
+          TOKEN=$(curl -sk -X POST -H "Content-Type: application/json" \
+            -d '{"username":"'"$ARGOCD_USER"'","password":"'"$ARGOCD_PASS"'"}' \
+            https://$ARGOCD_URL/api/v1/session | jq -r .token)
+
+          if [[ -z "$TOKEN" || "$TOKEN" == "null" ]]; then
+            echo "❌ Erro ao autenticar no ArgoCD"
+            exit 1
+          fi
+
+          echo "🚀 Disparando sync da aplicação $ARGOCD_APP"
+          curl -sk -X POST \
+            -H "Authorization: Bearer $TOKEN" \
+            -H "Content-Type: application/json" \
+            https://$ARGOCD_URL/api/v1/applications/$ARGOCD_APP/sync
+
+          echo "token=$TOKEN" >> $GITHUB_OUTPUT
+
+      - name: ArgoCD - Espera ficar Healthy
+        run: |
+          TOKEN="${{ steps.argocd.outputs.token }}"
+
+          echo "⏳ Aguardando aplicação $ARGOCD_APP ficar Healthy..."
+
+          for i in {1..60}; do
+            STATUS=$(curl -sk -H "Authorization: Bearer $TOKEN" \
+              https://$ARGOCD_URL/api/v1/applications/$ARGOCD_APP | jq -r '.status.health.status')
+
+            SYNC=$(curl -sk -H "Authorization: Bearer $TOKEN" \
+              https://$ARGOCD_URL/api/v1/applications/$ARGOCD_APP | jq -r '.status.sync.status')
+
+            echo "🔎 Health: $STATUS | Sync: $SYNC"
+
+            if [[ "$STATUS" == "Healthy" && "$SYNC" == "Synced" ]]; then
+              echo "✅ Aplicação está Healthy e Synced!"
+              exit 0
+            fi
+
+            sleep 5
+          done
+
+          echo "❌ Timeout: aplicação não ficou Healthy a tempo."
+          exit 1
