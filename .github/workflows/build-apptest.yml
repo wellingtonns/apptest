@@ -125,7 +125,7 @@ jobs:
     uses: wellingtonns/pipeline-template/.github/workflows/update-manifest.yaml@main
     with:
       IMAGE_NAME: welignton/apptest
-      TAG: ${{ jobs.build-image.outputs.tag }}
+      TAG: ${{ needs.build-image.outputs.tag }}
       FILE_PATH: manifestos/deployment.yaml
 
   deploy:
