@@ -1,59 +1,3 @@
-# name: Build and Deploy App
-
-# on:
-#   push:
-#     branches:
-#       - main
-
-# jobs:
-#   build-and-deploy:
-#     runs-on: ubuntu-latest
-
-#     env:
-#       IMAGE_NAME: welignton/apptest
-
-#     steps:
-#       # 🔹 Clona o repositório
-#       - name: Checkout
-#         uses: actions/checkout@v3
-
-#       # 🔹 Login no Docker Hub
-#       - name: Login no Docker Hub
-#         uses: docker/login-action@v3
-#         with:
-#           username: ${{ secrets.DOCKERHUB_USERNAME }}
-#           password: ${{ secrets.DOCKERHUB_TOKEN }}
-
-#       # 🔹 Define a TAG curta do commit
-#       - name: Definir TAG
-#         run: echo "TAG=${GITHUB_SHA::7}" >> $GITHUB_ENV
-
-#       # 🔹 Build da imagem
-#       - name: Build da imagem Docker
-#         run: |
-#           docker build -t $IMAGE_NAME:${TAG} .
-#           docker tag $IMAGE_NAME:${TAG} $IMAGE_NAME:latest
-
-#       # 🔹 Push da imagem
-#       - name: Push da imagem Docker
-#         run: |
-#           docker push $IMAGE_NAME:${TAG}
-#           docker push $IMAGE_NAME:latest
-
-#       # 🔹 Atualiza o YAML com nova tag
-#       - name: Atualizar deployment.yaml
-#         run: |
-#           sed -i "s|image: $IMAGE_NAME.*|image: $IMAGE_NAME:${TAG}|g" manifestos/deployment.yaml
-
-#       # 🔹 Faz commit e push da atualização
-#       - name: Commit e Push
-#         run: |
-#           git config user.name "github-actions"
-#           git config user.email "actions@github.com"
-#           git remote set-url origin https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/wellingtonns/apptest.git
-#           git add manifestos/deployment.yaml
-#           git commit -m "Atualiza imagem para ${TAG}" || echo "Nenhuma alteração para commit"
-#           git push origin HEAD
 name: Build and Deploy App
 
 on:
@@ -103,7 +47,7 @@ jobs:
       # 🔹 Atualiza o YAML com nova tag
       - name: Atualizar deployment.yaml
         run: |
-          sed -i "s|image: $IMAGE_NAME.*|image: $IMAGE_NAME:${TAG}|g" manifestos/deployment.yaml
+          sed -i "s|image: $IMAGE_NAME.*|image: $IMAGE_NAME:inex|g" manifestos/deployment.yaml
 
       # 🔹 Faz commit e push da atualização
       - name: Commit e Push
