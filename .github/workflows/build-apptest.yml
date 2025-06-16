@@ -54,6 +54,13 @@ jobs:
           git add manifestos/deployment.yaml
           git commit -m "Atualiza imagem para ${TAG}" || echo "Nenhuma alteração para commit"
           git push origin HEAD
+
+      - name: Instala Argo CD CLI
+        run: |
+          curl -sSL -o argocd https://github.com/argoproj/argo-cd/releases/latest/download/argocd-linux-amd64
+          chmod +x argocd
+          sudo mv argocd /usr/local/bin/argocd
+
         
       - name: ArgoCD Sync
         run: |
