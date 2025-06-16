@@ -83,25 +83,21 @@ jobs:
             STATUS=$(echo "$RESPONSE" | jq -r '.status.sync.status')
             HEALTH=$(echo "$RESPONSE" | jq -r '.status.health.status')
 
-            echo "Tentativa $i: sync=$STATUS, health=$HEALTH"
-
             if [[ "$STATUS" == "Synced" && "$HEALTH" == "Healthy" ]]; then
-              echo "Aplicação sincronizada e saudável ✅"
+              echo "Aplicação sincronizada ---- Status ---= Healthy✅"
               exit 0
             fi
 
             if [[ "$HEALTH" == "Degraded" ]]; then
-              echo "❌ Aplicação com status Degraded. Parando pipeline."
+              echo "Aplicação com Falha ---- Status ---= Degraded ❌"
               exit 1
             fi
 
-            echo "⏳ Aplicação em processamento, aguardando..."
+            echo "Aplicação Checkins --- Status ---= Processing...⏳"
             sleep 10
           done
 
-          echo "⚠️ Aplicação não sincronizada e não saudável após 10 tentativas"
           exit 1
-
 
 
 
