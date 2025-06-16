@@ -134,7 +134,6 @@
 #     with:
 #       APP_NAME: apptest
 
-
 name: Build and Deploy App
 
 on:
@@ -191,7 +190,7 @@ jobs:
 
   argo-sync:
     needs: build-and-deploy
-    uses: wellingtonns/pipeline-template/.github/workflows/argocd-sync.yaml@main
+    uses: wellingtonns/pipeline-template/.github/workflows/argo-sync.yaml@main
     with:
       ARGOCD_URL: ${{ secrets.ARGOCD_URL }}
       ARGOCD_USER: ${{ secrets.ARGOCD_USER }}
