@@ -159,7 +159,7 @@ jobs:
           git push origin HEAD
 
   monitor-argocd:
-    uses: ./.github/workflows/argocd-monitor.yaml
+    uses: ./.github/workflows/argocd-sync.yaml
     needs: build-and-deploy
     with:
       APP_NAME: apptest
