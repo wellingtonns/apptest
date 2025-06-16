@@ -41,7 +41,7 @@ jobs:
 
       - name: Atualizar deployment.yaml
         run: |
-          sed -i "s|image: $IMAGE_NAME.*|image: $IMAGE_NAME:Inexs|g" manifestos/deployment.yaml
+          sed -i "s|image: $IMAGE_NAME.*|image: $IMAGE_NAME:${TAG}|g" manifestos/deployment.yaml
 
       - name: Commit e Push
         run: |
