@@ -44,7 +44,7 @@ jobs:
       # 🔸 Atualiza o deployment.yaml com a nova tag
       - name: Atualizar deployment.yaml
         run: |
-          sed -i "s|image: $IMAGE_NAME.*|image: $IMAGE_NAME:${TAG}|g" workloads/apptest/manifestos/deployment.yaml
+          sed -i "s|image: $IMAGE_NAME.*|image: $IMAGE_NAME:${TAG}|g" apptest/manifestos/deployment.yaml
 
       # 🔸 Commit e Push da alteração no Git
       - name: Commit e Push
