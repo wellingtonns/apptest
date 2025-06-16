@@ -51,6 +51,6 @@ jobs:
           git config user.name "github-actions"
           git config user.email "actions@github.com"
           git remote set-url origin https://wellingtonns:${{ secrets.GH_TOKEN }}@github.com/wellingtonns/apptest.git
-          git add manifestos/Deployment.yaml
+          git add manifestos/deployment.yaml
           git commit -m "Atualiza imagem para ${TAG}" || echo "Nenhuma alteração para commit"
           git push
