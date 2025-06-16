@@ -151,7 +151,6 @@ jobs:
       ARGOCD_USER: ${{ secrets.ARGOCD_USER }}
       ARGOCD_PASS: ${{ secrets.ARGOCD_PASS }}
       APP_NAME: apptest
-
     steps:
       - name: Checkout
         uses: actions/checkout@v3
@@ -192,7 +191,7 @@ jobs:
     needs: build-and-deploy
     uses: wellingtonns/pipeline-template/.github/workflows/argocd-sync.yaml@main
     with:
-      ARGOCD_URL: ${{ secrets.ARGOCD_URL }}
-      ARGOCD_USER: ${{ secrets.ARGOCD_USER }}
-      ARGOCD_PASS: ${{ secrets.ARGOCD_PASS }}
-      APP_NAME: apptest
+      ARGOCD_URL: ${{ env.ARGOCD_URL }}
+      ARGOCD_USER: ${{ env.ARGOCD_USER }}
+      ARGOCD_PASS: ${{ env.ARGOCD_PASS }}
+      APP_NAME: ${{ env.APP_NAME }}
