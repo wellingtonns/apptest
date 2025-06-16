@@ -97,6 +97,7 @@ jobs:
             sleep 10
           done
 
+          echo "Aplicação com Falha ---- Status ---= Degraded ❌"
           exit 1
 
 
