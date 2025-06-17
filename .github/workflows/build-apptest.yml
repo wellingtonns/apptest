@@ -119,9 +119,5 @@ jobs:
     with:
       IMAGE_NAME: welignton/apptest
       APP_NAME: apptest
-    secrets:
-      ARGOCD_URL: ${{ secrets.ARGOCD_URL }}
-      ARGOCD_USER: ${{ secrets.ARGOCD_USER }}
-      ARGOCD_PASS: ${{ secrets.ARGOCD_PASS }}
-      DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
-      DOCKERHUB_TOKEN: ${{ secrets.DOCKERHUB_TOKEN }}
+    secrets: inherit
+
