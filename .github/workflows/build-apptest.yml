@@ -7,13 +7,14 @@ on:
 
 jobs:
   build-and-push:
+    name: Build, Push e Deploy
     uses: wellingtonns/pipeline-template/.github/workflows/build-push.yml@main
     with:
       IMAGE_NAME: welignton/apptest
       APP_NAME: apptest
     secrets: inherit
 
-  deploy-argocd:
+  sync-argocd:
     needs: build-and-push
     uses: wellingtonns/pipeline-template/.github/workflows/argocd-sync.yml@main
     with:
