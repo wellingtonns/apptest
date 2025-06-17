@@ -1,18 +1,3 @@
-# name: Build and Deploy App
-
-# on:
-#   push:
-#     branches:
-#       - main
-
-# jobs:
-#   call-build-and-deploy:
-#     uses: wellingtonns/pipeline-template/.github/workflows/argocd-sync.yml@main
-#     with:
-#       IMAGE_NAME: welignton/apptest
-#       APP_NAME: apptest
-#     secrets: inherit
-
 name: Build, Push e Deploy
 
 on:
@@ -22,7 +7,7 @@ on:
 
 jobs:
   build-and-push:
-    uses: wellingtonns/app-template/.github/workflows/build-push.yml@main
+    uses: wellingtonns/pipeline-template/.github/workflows/build-push.yml@main
     with:
       IMAGE_NAME: welignton/apptest
       APP_NAME: apptest
@@ -30,7 +15,7 @@ jobs:
 
   deploy-argocd:
     needs: build-and-push
-    uses: wellingtonns/app-template/.github/workflows/argocd-sync.yml@main
+    uses: wellingtonns/pipeline-template/.github/workflows/argocd-sync.yml@main
     with:
       APP_NAME: apptest
     secrets: inherit
