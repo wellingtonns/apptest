@@ -107,33 +107,6 @@
 #           fi
  
 
-# name: Build and Deploy App
-
-# on:
-#   push:
-#     branches:
-#       - main
-
-# jobs:
-#   build-image:
-#     uses: wellingtonns/pipeline-template/.github/workflows/build-image.yaml@main
-#     with:
-#       IMAGE_NAME: welignton/apptest
-
-#   update-manifest:
-#     needs: build-image
-#     uses: wellingtonns/pipeline-template/.github/workflows/update-manifest.yaml@main
-#     with:
-#       IMAGE_NAME: welignton/apptest
-#       TAG: ${{ needs.build-image.outputs.tag }}
-#       FILE_PATH: manifestos/deployment.yaml
-
-#   deploy:
-#     needs: update-manifest
-#     uses: wellingtonns/pipeline-template/.github/workflows/argocd-sync.yaml@main
-#     with:
-#       APP_NAME: apptest
-
 name: Build and Deploy App
 
 on:
@@ -189,7 +162,7 @@ jobs:
     needs: build-and-deploy
     uses: wellingtonns/pipeline-template/.github/workflows/argocd-sync.yaml@main
     with:
-      ARGOCD_URL: ${{ secrets.ARGOCD_URL }}
-      ARGOCD_USER: ${{ secrets.ARGOCD_USER }}
-      ARGOCD_PASS: ${{ secrets.ARGOCD_PASS }}
+      # ARGOCD_URL: ${{ secrets.ARGOCD_URL }}
+      # ARGOCD_USER: ${{ secrets.ARGOCD_USER }}
+      # ARGOCD_PASS: ${{ secrets.ARGOCD_PASS }}
       APP_NAME: apptest
