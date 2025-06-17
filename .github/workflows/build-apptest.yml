@@ -1,10 +1,11 @@
+name: Build and Deploy apptest
 on:
   push:
     branches:
       - main
 
 jobs:
-  build-and-push:
+  build:
     uses: wellingtonns/pipeline-template/.github/workflows/build-push.yml@main
     with:
       IMAGE_NAME: welignton/apptest
@@ -12,7 +13,7 @@ jobs:
     secrets: inherit
 
   sync-argocd:
-    needs: build-and-push
+    needs: build
     uses: wellingtonns/pipeline-template/.github/workflows/argocd-sync.yml@main
     with:
       APP_NAME: apptest
