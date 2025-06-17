@@ -15,7 +15,7 @@ spec:
     spec:
       containers:
         - name: app-test
-          image: welignton/apptest:a4be129
+          image: welignton/apptest:22429d3
           ports:
             - containerPort: 9000
 
