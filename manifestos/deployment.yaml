@@ -4,6 +4,7 @@ metadata:
   name: app-test
   namespace: apptest
 spec:
+  revisionhistoryLimit: 2
   replicas: 2
   selector:
     matchLabels:
